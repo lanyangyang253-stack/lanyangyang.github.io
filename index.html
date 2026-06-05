@@ -1,0 +1,636 @@
+  </div>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LanYangyang · Card</title>
+  <style>
+    :root {
+      --bg: #06060e;
+      --card: #0e0e1a;
+      --accent: #00ffe7;
+      --accent2: #ff2d78;
+      --accent3: #ffe600;
+      --accent4: #a855f7;
+      --text: #e8e8f0;
+      --muted: #5a5a78;
+      --border: rgba(0,255,231,0.12);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    /* Custom cursor */
+    body { cursor: none; }
+    .cursor {
+      position: fixed;
+      width: 12px; height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%,-50%);
+      transition: transform 0.1s, width 0.2s, height 0.2s, opacity 0.2s;
+      mix-blend-mode: screen;
+    }
+    .cursor-ring {
+      position: fixed;
+      width: 36px; height: 36px;
+      border: 1px solid rgba(0,255,231,0.5);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%,-50%);
+      transition: transform 0.15s ease, width 0.3s, height 0.3s;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'PingFang SC','Microsoft YaHei',sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background particles */
+    canvas#particles {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Grid overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,231,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,231,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* Top bar */
+    .topbar {
+      font-family: monospace;
+      font-size: 0.6rem;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      opacity: 0;
+      animation: fadeIn 0.5s 0.2s ease forwards;
+    }
+    .topbar .typing::after {
+      content: '|';
+      animation: blink 0.8s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Main card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2.5rem 2rem;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      animation: slideUp 0.7s 0.4s ease forwards;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(40px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* Corner brackets */
+    .corner { position:absolute; width:18px; height:18px; border-color:var(--accent); border-style:solid; }
+    .corner-tl { top:0; left:0; border-width:2px 0 0 2px; }
+    .corner-tr { top:0; right:0; border-width:2px 2px 0 0; }
+    .corner-bl { bottom:0; left:0; border-width:0 0 2px 2px; }
+    .corner-br { bottom:0; right:0; border-width:0 2px 2px 0; }
+
+    /* Scan line */
+    .scanline {
+      position:absolute; left:0; right:0; height:2px; top:0;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: scan 5s linear infinite;
+      opacity: 0.3;
+    }
+    @keyframes scan { 0%{top:0} 100%{top:100%} }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .avatar {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      background: linear-gradient(135deg,#1a1a2e,#16213e);
+      display: flex; align-items:center; justify-content:center;
+      font-size: 2.2rem;
+      position: relative;
+      z-index: 1;
+      animation: avatarPulse 3s ease-in-out infinite;
+    }
+    @keyframes avatarPulse {
+      0%,100%{ box-shadow: 0 0 15px rgba(0,255,231,0.3), 0 0 30px rgba(0,255,231,0.1); }
+      50%    { box-shadow: 0 0 25px rgba(0,255,231,0.6), 0 0 50px rgba(0,255,231,0.2); }
+    }
+    /* Rotating ring */
+    .avatar-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 1px dashed rgba(0,255,231,0.4);
+      animation: spin 8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .name-block h1 {
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      line-height: 1;
+    }
+    .name-block h1 em { color: var(--accent); font-style: normal; }
+    .name-block .sub {
+      font-family: monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+      letter-spacing: 0.15em;
+    }
+
+    /* Online badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(0,255,231,0.07);
+      border: 1px solid rgba(0,255,231,0.2);
+      border-radius: 2px;
+      padding: 0.3rem 0.8rem;
+      font-family: monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.1em;
+    }
+    .badge .dot {
+      width:7px; height:7px; border-radius:50%;
+      background: var(--accent);
+      animation: blink 1.2s infinite;
+    }
+
+    /* Bio */
+    .bio {
+      font-size: 0.88rem;
+      line-height: 1.85;
+      color: #a0a0c0;
+      margin-bottom: 1.8rem;
+      padding-left: 1rem;
+      border-left: 2px solid var(--accent2);
+      position: relative;
+    }
+
+    /* Daily status */
+    .daily {
+      background: rgba(255,230,0,0.05);
+      border: 1px solid rgba(255,230,0,0.2);
+      border-radius: 2px;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1.8rem;
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: var(--accent3);
+      letter-spacing: 0.05em;
+      position: relative;
+      overflow: hidden;
+    }
+    .daily-label {
+      font-size: 0.6rem;
+      opacity: 0.6;
+      margin-bottom: 0.3rem;
+      letter-spacing: 0.2em;
+    }
+    .daily-text { line-height: 1.6; }
+    .daily::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--accent3);
+      animation: blink 2s infinite;
+    }
+
+    /* Tags */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .tag {
+      padding: 0.28rem 0.7rem;
+      font-size: 0.73rem;
+      border-radius: 2px;
+      font-family: monospace;
+      transition: all 0.2s;
+      cursor: default;
+      user-select: none;
+    }
+    .tag:hover { transform: translateY(-3px) scale(1.05); }
+    .tag-c { background:rgba(0,255,231,0.08);  border:1px solid rgba(0,255,231,0.25);  color:var(--accent); }
+    .tag-p { background:rgba(255,45,120,0.08); border:1px solid rgba(255,45,120,0.25); color:var(--accent2); }
+    .tag-y { background:rgba(255,230,0,0.08);  border:1px solid rgba(255,230,0,0.25);  color:var(--accent3); }
+    .tag-v { background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.25); color:var(--accent4); }
+
+    /* Section title */
+    .sec {
+      font-family: monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      margin-bottom: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .sec::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 0.7rem;
+      margin-bottom: 2rem;
+    }
+    .stat {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 1rem 0.5rem;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: default;
+    }
+    .stat:hover { border-color:var(--accent); background:rgba(0,255,231,0.05); transform:translateY(-3px); }
+    .stat .emoji { font-size:1.4rem; display:block; margin-bottom:0.3rem; }
+    .stat .lbl { font-size:0.65rem; color:var(--muted); line-height:1.5; }
+
+    /* Quote */
+    .quote {
+      background: rgba(255,45,120,0.04);
+      border: 1px solid rgba(255,45,120,0.18);
+      border-radius: 2px;
+      padding: 1rem 1.2rem 1rem 2rem;
+      margin-bottom: 2rem;
+      font-size: 0.87rem;
+      color: #c0c0d8;
+      line-height: 1.8;
+      font-style: italic;
+      position: relative;
+    }
+    .quote::before {
+      content:'"';
+      font-size:3.5rem;
+      color:var(--accent2);
+      opacity:0.2;
+      position:absolute;
+      top:-0.8rem; left:0.3rem;
+      font-style:normal;
+      line-height:1;
+      font-family:serif;
+    }
+
+    /* Contact grid */
+    .contacts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7rem;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.9rem 1rem;
+      border-radius: 2px;
+      text-decoration: none;
+      font-family: monospace;
+      font-size: 0.76rem;
+      border: 1px solid;
+      cursor: pointer;
+      background: none;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn::after {
+      content:'';
+      position:absolute;
+      inset:0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+      opacity:0;
+      transition: opacity 0.3s;
+    }
+    .btn:hover::after { opacity:1; }
+    .btn:hover { transform:translateY(-3px); }
+    .btn-c { background:rgba(0,255,231,0.07);  border-color:rgba(0,255,231,0.25);  color:var(--accent); }
+    .btn-p { background:rgba(255,45,120,0.07); border-color:rgba(255,45,120,0.25); color:var(--accent2); }
+    .btn-y { background:rgba(255,230,0,0.07);  border-color:rgba(255,230,0,0.25);  color:var(--accent3); }
+    .btn-c:hover { border-color:var(--accent);  box-shadow:0 4px 20px rgba(0,255,231,0.2); }
+    .btn-p:hover { border-color:var(--accent2); box-shadow:0 4px 20px rgba(255,45,120,0.2); }
+    .btn-y:hover { border-color:var(--accent3); box-shadow:0 4px 20px rgba(255,230,0,0.15); }
+    .btn-icon { font-size:1.15rem; flex-shrink:0; }
+    .btn-info { display:flex; flex-direction:column; gap:0.1rem; overflow:hidden; text-align:left; }
+    .btn-name { font-size:0.76rem; font-weight:700; }
+    .btn-id   { font-size:0.6rem; opacity:0.55; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 2rem; left:50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #0e0e1a;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: monospace;
+      font-size: 0.75rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+      transition: transform 0.3s ease;
+      z-index: 9997;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Footer */
+    .footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-family: monospace;
+      font-size: 0.58rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      opacity: 0.45;
+    }
+
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    /* Staggered card children */
+    .card > * { opacity:0; animation: fadeIn 0.5s ease forwards; }
+    .card > *:nth-child(1) { animation-delay: 0.5s; }
+    .card > *:nth-child(2) { animation-delay: 0.6s; }
+    .card > *:nth-child(3) { animation-delay: 0.7s; }
+    .card > *:nth-child(4) { animation-delay: 0.75s; }
+    .card > *:nth-child(5) { animation-delay: 0.8s; }
+    .card > *:nth-child(6) { animation-delay: 0.85s; }
+    .card > *:nth-child(7) { animation-delay: 0.9s; }
+    .card > *:nth-child(8) { animation-delay: 0.95s; }
+    .card > *:nth-child(9) { animation-delay: 1.0s; }
+    .card > *:nth-child(10){ animation-delay: 1.05s; }
+    .card > *:nth-child(11){ animation-delay: 1.1s; }
+    .card > *:nth-child(12){ animation-delay: 1.15s; }
+  </style>
+</head>
+<body>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+  <canvas id="particles"></canvas>
+  <div class="grid-overlay"></div>
+  <div class="toast" id="toast">已复制!</div>
+
+  <div class="page">
+    <div class="topbar">
+      <span class="typing" id="typing"></span>
+      <span id="clock"></span>
+    </div>
+
+    <div class="card">
+      <div class="scanline"></div>
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="header">
+        <div class="avatar-wrap">
+          <div class="avatar-ring"></div>
+          <div class="avatar">🐑</div>
+        </div>
+        <div class="name-block">
+          <h1>Lan<em>Yangyang</em></h1>
+          <div class="sub">// lanyangyang · Internet Drifter</div>
+        </div>
+      </div>
+
+      <div class="badge">
+        <span class="dot"></span>
+        Online · 正在冲浪 &amp; 抽象中
+      </div>
+
+      <div class="bio">
+        一个在网络世界自由漂流的大学生。<br/>
+        运行状态：<strong style="color:#e0e0f0">多线程并行学业管理与 ACG 文化解析</strong>；<br/>
+        资产偏好：<strong style="color:#e0e0f0">二级市场与加密经济双重对冲</strong>；<br/>
+        技术跟踪：<strong style="color:#e0e0f0">大语言模型与人工智能工具首批测试员</strong>。<br/>
+        旅行爱好者 · 抽象内容制造机 · 网络冲浪达人。
+      </div>
+
+      <div class="daily">
+        <div class="daily-label">// SYSTEM STATUS</div>
+        <div class="daily-text" id="dailyVibe"></div>
+      </div>
+
+      <div class="tags">
+        <span class="tag tag-c">🎮 Galgame玩家</span>
+        <span class="tag tag-y">📈 A股炒币</span>
+        <span class="tag tag-p">🤖 AI先行者</span>
+        <span class="tag tag-c">✈️ 旅行爱好者</span>
+        <span class="tag tag-p">🎭 抽象大师</span>
+        <span class="tag tag-y">🌐 网络冲浪</span>
+        <span class="tag tag-v">🎓 大学生</span>
+        <span class="tag tag-c">🕹️ 二次元</span>
+      </div>
+
+      <div class="sec">// Status</div>
+      <div class="stats">
+        <div class="stat">
+          <span class="emoji">📖</span>
+          <span class="lbl">Galgame<br/>收藏中</span>
+        </div>
+        <div class="stat">
+          <span class="emoji">📉</span>
+          <span class="lbl">A股<br/>持仓中</span>
+        </div>
+        <div class="stat">
+          <span class="emoji">🤖</span>
+          <span class="lbl">AI工具<br/>探索中</span>
+        </div>
+
+      <div class="quote">
+        现实世界观察员 + 虚拟世界玩家，<br/>
+        用抽象对抗无聊，用AI理解世界。
+      </div>
+
+      <div class="sec">// Contact</div>
+      <div class="contacts">
+        <button class="btn btn-c" onclick="copyText('ZXBlanyangyangdawang','微信号已复制 ✓')">
+          <span class="btn-icon">💬</span>
+          <div class="btn-info">
+            <span class="btn-name">微信 WeChat</span>
+            <span class="btn-id">ZXBlanyangyangdawang</span>
+          </div>
+        </button>
+        <button class="btn btn-c" onclick="copyText('3799886474','QQ号已复制 ✓')">
+          <span class="btn-icon">🐧</span>
+          <div class="btn-info">
+            <span class="btn-name">QQ</span>
+            <span class="btn-id">3799886474</span>
+          </div>
+        </button>
+        <a class="btn btn-p" href="https://t.me/lanyangyang253" target="_blank">
+          <span class="btn-icon">✈️</span>
+          <div class="btn-info">
+            <span class="btn-name">Telegram</span>
+            <span class="btn-id">@lanyangyang253</span>
+          </div>
+        </a>
+        <a class="btn btn-y" href="https://www.instagram.com/landawangchiqingcaodangao" target="_blank">
+          <span class="btn-icon">📸</span>
+          <div class="btn-info">
+            <span class="btn-name">Instagram</span>
+            <span class="btn-id">landawangchiqing...</span>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer">© 2026 LanYangyang · Be what you wanna be · 用爱发电</div>
+  </div>
+
+  <script>
+    // Custom cursor
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
+    (function animRing(){
+      rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12;
+      ring.style.left=rx+'px'; ring.style.top=ry+'px';
+      requestAnimationFrame(animRing);
+    })();
+    document.querySelectorAll('a,button,.tag,.stat').forEach(el=>{
+      el.addEventListener('mouseenter',()=>{ cursor.style.width='6px'; cursor.style.height='6px'; ring.style.width='50px'; ring.style.height='50px'; });
+      el.addEventListener('mouseleave',()=>{ cursor.style.width='12px'; cursor.style.height='12px'; ring.style.width='36px'; ring.style.height='36px'; });
+    });
+
+    // Particles
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let W,H,particles=[];
+    function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+    resize(); window.addEventListener('resize',resize);
+    for(let i=0;i<60;i++) particles.push({
+      x:Math.random()*2000, y:Math.random()*1200,
+      vx:(Math.random()-0.5)*0.3, vy:(Math.random()-0.5)*0.3,
+      r:Math.random()*1.5+0.5,
+      a:Math.random(),
+      c:['#00ffe7','#ff2d78','#ffe600','#a855f7'][Math.floor(Math.random()*4)]
+    });
+    function drawParticles(){
+      ctx.clearRect(0,0,W,H);
+      particles.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+        if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fillStyle=p.c;
+        ctx.globalAlpha=p.a*0.6;
+        ctx.fill();
+      });
+      ctx.globalAlpha=1;
+      requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+
+    // Clock
+    function updateClock(){
+      const now=new Date();
+      const h=String(now.getHours()).padStart(2,'0');
+      const m=String(now.getMinutes()).padStart(2,'0');
+      const s=String(now.getSeconds()).padStart(2,'0');
+      document.getElementById('clock').textContent=h+':'+m+':'+s;
+    }
+    setInterval(updateClock,1000); updateClock();
+
+    // Typing effect
+    const phrases=['> INITIALIZING PROFILE... [OK]','> LOADING CYBER CARD v3.0...','> 蓝洋洋已上线 ✓'];
+    let pi=0,ci=0,typing=true;
+    const typingEl=document.getElementById('typing');
+    function typeLoop(){
+      if(typing){
+        typingEl.textContent=phrases[pi].slice(0,ci+1);
+        ci++;
+        if(ci>=phrases[pi].length){ typing=false; setTimeout(typeLoop,1800); return; }
+      } else {
+        typingEl.textContent=phrases[pi].slice(0,ci-1);
+        ci--;
+        if(ci<=0){ typing=true; pi=(pi+1)%phrases.length; }
+      }
+      setTimeout(typeLoop, typing?60:30);
+    }
+    typeLoop();
+
+    // Daily status (based on day of week - Objective descriptions)
+    const vibes = [
+      'STATUS_MON :: 学业任务队列初始化，系统资源优先分配中 📚',
+      'STATUS_TUE :: 核心模块保持低功耗低频率运转 🐟',
+      'STATUS_WED :: 权益资产净值波动监测中 📉😌',
+      'STATUS_THU :: 交互式叙事视觉小说引擎并发加载 🎮',
+      'STATUS_FRI :: 网络数据包高频过滤与分发已就绪 🏄',
+      'STATUS_SAT :: 离线状态检测结束，已接入全域广域网 ☀️',
+      'STATUS_SUN :: 非线性、解构性语义包批量生产中 🎭'
+    ];
+    document.getElementById('dailyVibe').textContent=vibes[new Date().getDay()];
+
+    // Copy
+    function copyText(text,msg){
+      navigator.clipboard.writeText(text).then(()=>showToast(msg)).catch(()=>{
+        var el=document.createElement('textarea');
+        el.value=text; document.body.appendChild(el); el.select();
+        document.execCommand('copy'); document.body.removeChild(el);
+        showToast(msg);
+      });
+    }
+    function showToast(msg){
+      var t=document.getElementById('toast');
+      t.textContent='✓ '+msg; t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),2000);
+    }
+  </script>
+</body>
+</html>
